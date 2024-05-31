@@ -155,26 +155,43 @@ M.set_venv = function(name)
 end
 
 M.auto_venv = function()
-  local loaded, project_nvim = pcall(require, "project_nvim.project")
+  -- Check if the $VIRTUAL_ENV environment variable exists
+  local virtual_env = os.getenv("VIRTUAL_ENV")
+  if virtual_env then
+    -- Extract the last part of the $VIRTUAL_ENV path
+    local venv_name = virtual_env:match("([^/]+)$")
+    if venv_name then
+      local venv = { path = virtual_env, name = venv_name }
+      set_venv(venv)
+      return
+    end
+  end
+
+  -- The function tries to activate in-project venvs, if present. Otherwise it tries to activate a venv in venvs folder
+  -- which best matches the project name.
+  local loaded, project_nvim = pcall(require, 'project_nvim.project')
   local venvs = settings.get_venvs(settings.venvs_path)
-  local project_dir = nil
-  if loaded then
-    project_dir, _ = project_nvim.get_project_root()
-  else
-    print("Error: failed to load the project_nvim.project module")
+  if not loaded then
+    print('Error: failed to load the project_nvim.project module')
     return
   end
 
-  if project_dir then  -- project_nvim.get_project_root might not always return a project path
-    local project_venv_name = read_venv_name(project_dir)
-    if not project_venv_name then
+  local project_dir, _ = project_nvim.get_project_root()
+  if project_dir then -- project_nvim.get_project_root might not always return a project path
+    local venv_name = read_venv_name_in_project(project_dir)
+    if venv_name then
+      local venv = { path = get_local_venv_path(project_dir), name = venv_name }
+      set_venv(venv)
       return
     end
-    local closest_match = best_match(venvs, project_venv_name)
-    if not closest_match then
-      return
+    venv_name = read_venv_name_common_dir(project_dir)
+    if venv_name then
+      local venv = best_match(venvs, venv_name)
+      if venv then
+        set_venv(venv)
+        return
+      end
     end
-    set_venv(closest_match)
   end
 end
 
