@@ -36,10 +36,10 @@ M.set_venv_path = function(venv)
     vim.fn.setenv('CONDA_PROMPT_MODIFIER', '(' .. venv.name .. ')')
   else
     vim.fn.setenv('VIRTUAL_ENV', venv.path)
+    vim.fn.setenv('VIRTUAL_ENV_PROMPT', '(' .. venv.name .. ')')
   end
 
   current_venv = venv
-  -- TODO: remove old path
   update_path(venv.path)
 
   if settings.post_set_venv then
@@ -116,7 +116,7 @@ end
 
 local get_pixi_base_path = function()
   local current_dir = vim.fn.getcwd()
-  local pixi_root = Path:new(current_dir) / ('.pixi')
+  local pixi_root = Path:new(current_dir) / '.pixi'
 
   if not pixi_root:exists() then
     return nil
@@ -130,7 +130,7 @@ local get_conda_base_path = function()
   if conda_exe == vim.NIL then
     return nil
   else
-    return Path:new(conda_exe):parent():parent() / ('envs')
+    return Path:new(conda_exe):parent():parent() / 'envs'
   end
 end
 
@@ -165,12 +165,40 @@ local get_pyenv_base_path = function()
   end
 end
 
+local get_project_venv_path = function(project_dir)
+  local venv_path = Path:new(project_dir) / '.venv'
+  if venv_path:exists() then
+    return venv_path
+  end
+  return nil
+end
+
+-- Function to get project virtual environment
+local get_project_venv = function()
+  local venvs = {}
+  local current_dir = vim.fn.getcwd()
+  local project_venv_path = get_project_venv_path(current_dir)
+
+  if project_venv_path then
+    -- Get the project name from the directory
+    local project_name = vim.fn.fnamemodify(current_dir, ':t')
+    table.insert(venvs, {
+      name = project_name,
+      path = tostring(project_venv_path),
+      source = 'venv',
+    })
+  end
+
+  return venvs
+end
+
 M.get_venvs = function(venvs_path)
   local venvs = {}
   vim.list_extend(venvs, get_venvs_for(venvs_path, 'venv'))
   vim.list_extend(venvs, get_venvs_for(get_pixi_base_path(), 'pixi'))
   vim.list_extend(venvs, get_venvs_for(get_conda_base_path(), 'conda'))
   vim.list_extend(venvs, get_conda_base_env())
+  vim.list_extend(venvs, get_project_venv()) -- Add project venv
   vim.list_extend(venvs, get_venvs_for(get_micromamba_base_path(), 'micromamba'))
   vim.list_extend(venvs, get_venvs_for(get_pyenv_base_path(), 'pyenv'))
   vim.list_extend(
@@ -259,6 +287,17 @@ local auto_venv_project_nvim = function(project_nvim, venvs)
         M.set_venv_path(venv)
         return
       end
+    end
+    -- Check for .venv directory in the project
+    local project_venv_path = get_project_venv_path(project_dir)
+    if project_venv_path then
+      local venv = {
+        name = 'project_venv',
+        path = project_venv_path,
+        source = 'venv',
+      }
+      M.set_venv_path(venv)
+      return
     end
   end
 end
