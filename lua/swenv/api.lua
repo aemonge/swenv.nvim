@@ -252,11 +252,6 @@ M.reset_venv = function()
   if settings.post_reset_venv then
     settings.post_reset_venv()
   end
-
-  vim.notify(
-    'Virtual environment has been reset to the original Python version.',
-    vim.log.levels.INFO
-  )
 end
 
 M.set_venv = function(name)
