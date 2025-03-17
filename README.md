@@ -54,9 +54,36 @@ require('swenv.api').auto_venv()
 Using a file named **.venv** in your projects root folder, it will automatically set the
 virtual-env for such environment.
 
+### `post_reset_venv` Function
+
+The `post_reset_venv` function is a callback that can be defined in the `settings`
+table. It is executed after the virtual environment has been reset. This allows for
+additional custom actions to be performed after the environment reset, such as reloading
+configurations, updating UI elements, or triggering other dependent processes.
+
+#### Usage Example
+
+You can define a `post_reset_venv` function in your settings to perform custom actions
+after resetting the virtual environment:
+
+```lua
+return {
+    "AckslD/swenv.nvim",
+    config = function()
+        require("swenv").setup(
+        {
+            post_set_venv = function()
+                vim.cmd [[:LspRestart]]
+            end,
+        }
+    )
+)
+```
+
 #### project.nvim
 
-With [project_nvim](https://github.com/ahmedkhalf/project.nvim) installed swenv.nvim will activate in-project venvs if present.
+With [project_nvim](https://github.com/ahmedkhalf/project.nvim) installed swenv.nvim
+will activate in-project venvs if present.
 
 This integration is skipped if `auto_create_venv` is enabled
 
@@ -64,11 +91,13 @@ This integration is skipped if `auto_create_venv` is enabled
 
 You can have swenv.nvim attempt to create a venv directory and set to it.
 
-swenv.nvim will search up for a file containing dependencies and create a new venv directory set to `auto_create_venv_dir`
+swenv.nvim will search up for a file containing dependencies and create a new venv
+directory set to `auto_create_venv_dir`
 
 Supported install types in order:
 
-- `pdm sync` with `pdm.lock` (does not modify pdm settings. You need to set the venv directory in pdm)
+- `pdm sync` with `pdm.lock` (does not modify pdm settings. You need to set the venv
+  directory in pdm)
 
 > These require the `venv` module in python:
 
@@ -77,14 +106,12 @@ Supported install types in order:
 - `pip install` with `pyproject.toml`
 
 ```lua
-
 require('swenv').setup({
     -- attempt to auto create and set a venv from dependencies
     auto_create_venv = true,
     -- name of venv directory to create if using pip
     auto_create_venv_dir = ".venv"
 })
-
 ```
 
 #### Auto Command
