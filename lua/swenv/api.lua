@@ -100,16 +100,24 @@ local get_venvs_for = function(base_path, source, opts)
   if base_path == nil then
     return venvs
   end
-  local paths = scan_dir(
-    base_path,
+  local success, paths = pcall(
+    scan_dir,
+    tostring(base_path), -- Ensure path is a string
     vim.tbl_extend('force', { depth = 1, only_dirs = true, silent = true }, opts or {})
   )
-  for _, path in ipairs(paths) do
-    table.insert(venvs, {
-      name = Path:new(path):make_relative(base_path),
-      path = path,
-      source = source,
-    })
+
+  if not success then
+    return venvs
+  end
+
+  if paths and #paths > 0 then
+    for _, path in ipairs(paths) do
+      table.insert(venvs, {
+        name = Path:new(path):make_relative(tostring(base_path)),
+        path = path,
+        source = source,
+      })
+    end
   end
   return venvs
 end
